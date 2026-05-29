@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react';
 import { useStellarAccount } from '@/contexts/StellarContext';
 import { ConnectWallet } from '@/components/ui/ConnectWallet';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { supabase, dbHelpers } from '@/lib/supabase';
 
 import StudentCredentialsList from '@/components/student/StudentCredentialsList';
 
@@ -30,13 +30,15 @@ function DashboardContent() {
     useEffect(() => {
         if (!user || userRole !== 'institution' || !institutionId || !address) return;
 
-        supabase
-            .from('institutions')
-            .update({ wallet_address: address })
-            .eq('id', institutionId)
-            .then(({ error }) => {
-                if (error) console.error('Error persisting wallet address:', error);
-            });
+        dbHelpers.updateInstitutionWallet(institutionId, address).then(({ data, error }) => {
+            if (error) {
+                console.error('Error persisting wallet address:', error);
+                toast.error('Failed to save wallet address');
+            } else if (!data) {
+                console.error('No institution row updated for id:', institutionId);
+                toast.error('Failed to save wallet address: institution not found');
+            }
+        });
     }, [address, institutionId, user, userRole]);
 
     // Fetch institution ID from database
